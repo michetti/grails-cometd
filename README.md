@@ -3,7 +3,7 @@
 [CometD](http://cometd.org) is a scalable HTTP-based event routing bus that uses an Ajax Push technology pattern known as [Comet](http://en.wikipedia.org/wiki/Comet_(programming\)).  This plugin allows your Grails application to push asynchronous notifications to HTTP clients using CometD and the [Bayeux](http://cometd.org/documentation/bayeux) protocol.
 
 ## Installation
-This didn't work for me, but:
+NOTE: Because of a bug this won't work in grails 1.3.2 (fixed in 1.3.3):
 
 	grails install-plugin cometd
 	
