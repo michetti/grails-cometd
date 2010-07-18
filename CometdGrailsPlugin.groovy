@@ -78,7 +78,6 @@ CometD and the Bayeux protocol.
 							'param-name'(key)
 							'param-value'(value)
 						}
-						println key + " :: " + value
 					}
 				}
             }
