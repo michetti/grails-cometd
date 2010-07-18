@@ -70,6 +70,17 @@ CometD and the Bayeux protocol.
             servlet {
                 'servlet-name'('cometd')
                 'servlet-class'(CometdServlet.class.name)
+
+				// Add servlet init params from the config file
+				if (conf.init?.params) {
+					conf.init.params.each { key, value ->
+						'init-param' {
+							'param-name'(key)
+							'param-value'(value)
+						}
+						println key + " :: " + value
+					}
+				}
             }
         }
 
