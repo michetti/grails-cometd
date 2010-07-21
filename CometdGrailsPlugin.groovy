@@ -21,6 +21,7 @@ import org.codehaus.groovy.grails.commons.ConfigurationHolder
 import org.cometd.server.BayeuxServerImpl
 import org.cometd.server.CometdServlet
 import org.cometd.bayeux.server.BayeuxServer
+import grails.plugin.cometd.ServiceCometdProcessor
 
 import org.springframework.web.context.support.ServletContextAttributeExporter
 
@@ -71,15 +72,15 @@ CometD and the Bayeux protocol.
                 'servlet-name'('cometd')
                 'servlet-class'(CometdServlet.class.name)
 
-				// Add servlet init params from the config file
-				if (conf.init?.params) {
-					conf.init.params.each { key, value ->
-						'init-param' {
-							'param-name'(key)
-							'param-value'(value)
-						}
-					}
-				}
+                // Add servlet init params from the config file
+                if (conf.init?.params) {
+                    conf.init.params.each { key, value ->
+                        'init-param' {
+                            'param-name'(key)
+                            'param-value'(value)
+                        }
+                    }
+                }
             }
         }
 
@@ -100,6 +101,14 @@ CometD and the Bayeux protocol.
         // the CometdServlet will pick up the Bayeux object from the servlet context
         bayeuxAttributeExporter(ServletContextAttributeExporter) {
             attributes = [(BayeuxServer.ATTRIBUTE): ref('bayeux')]
+        }
+    }
+
+    def doWithDynamicMethods = { context ->
+		def processor = new ServiceCometdProcessor()
+		
+        application.serviceClasses?.each { service ->
+            processor.process(service, context.bayeux)
         }
     }
 }
