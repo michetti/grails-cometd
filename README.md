@@ -27,6 +27,34 @@ The plugin configures a CometdServlet, mapped to the path cometd relative to you
 
 A bean named bayeux is made available to your application. It is an instance of [BayeuxServer](http://download.cometd.org/bayeux-api-2.0.beta0-javadoc/org/cometd/bayeux/server/BayeuxServer.html). This is used to interact with the Comet server.
 
+### Annotations
+***
+
+You can annotate your service classes and the plugin will wire everything up for you.  This needs a bit of Cometd knowledge, but it's fairly straight forward.  In order to register your service as a Cometd service you just have to add a static property to the service, much like the JMS and XFire plugins. (though this might be moving to a class level annotation, we'll see.)
+
+	static exposes = ["cometd"]
+
+#### @ChannelInitializer
+When you annotate a service method with the @ChannelInitializer annotation, the plugin will register it as a ConfigurableServerChannel.Initializer with the bayeux server.  Your service method will be called with one argument, which is the ConfigurableServerChannel instance of the channel. Example:
+
+	@ChannelInitializer("/foo/bar")
+	def configure(channel) {
+		channel.persistent = true
+	}
+
+#### @MessageListener
+Annotating a service method with the @MessageListener annotation will register the method as a ServerChannel.MessageListener on the provided channel.  The functionality is similar to that found with the AbstractService that comes with the Cometd distribution.  Depending on the signature of your method, it will be called with different arguments.  Possible options include:
+
+	def service(session, data) // The "from" Session and Message.data
+	def service(session, data, id) // The "from" Session, Message.data, and the client id
+	def service(session, channel, message, id) // The "from" Session, the channel(String), the Message, and the client id
+	
+If you were to explicitly define the parameter type for message you will get the actual Message object and not just the data field on the Message:
+
+	def service(session, Message message) // The "from" Session and Message
+	
+If you return false from the method, the message will not be broadcast.  If you return nothing or true, the message will be broadcast.  If you return an object or message, that message will be delivered to the client that initialized the service call.
+
 ### Configuration
 ***
 
