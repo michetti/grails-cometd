@@ -110,7 +110,7 @@ CometD and the Bayeux protocol.
 
     def doWithDynamicMethods = { context ->     
         application.serviceClasses?.each { service ->
-            processor.process(service.referenceInstance, context.bayeux)
+            processor.process(service.referenceInstance, context)
         }
     }
 

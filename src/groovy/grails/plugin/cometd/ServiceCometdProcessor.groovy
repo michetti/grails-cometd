@@ -1,5 +1,6 @@
 package grails.plugin.cometd
 
+import grails.util.GrailsNameUtils as GNU
 import org.codehaus.groovy.grails.commons.GrailsClassUtils as GCU
 
 import org.cometd.bayeux.Message
@@ -11,7 +12,8 @@ class ServiceCometdProcessor {
     final static EXPOSE = "expose"
     final static COMETD = "cometd"
     
-    def configurations = [
+	def _context
+    def _configurations = [
         "initializers": [:],
         "messageListeners": [:]
     ]
@@ -24,8 +26,11 @@ class ServiceCometdProcessor {
         GCU.getStaticPropertyValue(service, EXPOSES)?.contains(COMETD) || GCU.getStaticPropertyValue(service, EXPOSE)?.contains(COMETD)
     }
     
-    def process(service, bayeux) {
+    def process(service, context) {
         def clazz = service.class
+		def bayeux = context.bayeux
+
+		_context = context;
         
         // If the service has declared itself a cometd service
         if (ServiceCometdProcessor.exposesCometd(clazz)) {
@@ -43,12 +48,12 @@ class ServiceCometdProcessor {
             }
             
             // Initialize all of the configurations. This allows us to control the order in which annotations are processed across many services
-            configurations.initializers.each { channel, configurations ->
+            _configurations.initializers.each { channel, configurations ->
                 configureInitializers(channel, configurations, bayeux)
             }
             
             // Initialize all of the messageListeners
-            configurations.messageListeners.each { channel, configurations ->
+            _configurations.messageListeners.each { channel, configurations ->
                 configureMessageListeners(channel, configurations, bayeux)
             }
         }
@@ -112,7 +117,7 @@ class ServiceCometdProcessor {
         
         configurations.each { configuration ->
             def method = configuration.method
-            def service = configuration.service
+            def service = _context[GNU.getPropertyNameRepresentation(configuration.service.class)]
             def arguments = configuration.method.parameterTypes
 
             bayeux.getChannel(channelId).addListener({ session, channel, message ->
@@ -152,10 +157,10 @@ class ServiceCometdProcessor {
      * Helper method to add a configuration object to the configuration container for a given channel
      */
     private addConfigurationForChannel(type, channel, annotation, service, method, ext) {
-        def channelConfigurations = configurations[type][channel] ?: []
+        def channelConfigurations = _configurations[type][channel] ?: []
         def configuration = [annotation: annotation, service: service, method: method] << ext
         
-        configurations[type][channel] = channelConfigurations << configuration
+        _configurations[type][channel] = channelConfigurations << configuration
     }
     
     private addConfigurationForChannel(type, channel, annotation, service, method) {
