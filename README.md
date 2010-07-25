@@ -55,6 +55,15 @@ If you were to explicitly define the parameter type for message you will get the
 	
 If you return false from the method, the message will not be broadcast.  If you return nothing or true, the message will be broadcast.  If you return an object or message, that message will be delivered to the client that initialized the service call.
 
+The actual use of this annotation would look thusly:
+
+	@MessageListener("/foo/bar")
+	def onFooBar(session, data) {
+		// do something with the data
+		
+		[message: "thanks for the info mr. client"]
+	}
+
 ### Configuration
 ***
 
