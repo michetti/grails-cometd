@@ -17,6 +17,7 @@
 import grails.util.Environment
 
 import org.codehaus.groovy.grails.commons.ConfigurationHolder
+import org.codehaus.groovy.grails.commons.ServiceArtefactHandler
 
 import org.cometd.server.BayeuxServerImpl
 import org.cometd.server.CometdServlet
@@ -28,7 +29,6 @@ import org.springframework.web.context.support.ServletContextAttributeExporter
 class CometdGrailsPlugin {
     def version = "0.2.1"
     def grailsVersion = "1.3.1 > *"
-    def dependsOn = [:]
     def pluginExcludes = [
         'grails-app/services/**/test/',
         'grails-app/views/error.gsp',
@@ -45,6 +45,8 @@ This plugin allows your Grails application to send asynchronous notifications to
 CometD and the Bayeux protocol.
     '''
     def documentation = "http://www.grails.org/plugin/cometd"
+    def loadAfter = ['services', 'controllers']
+    def observe = ['services', 'controllers']
 
     def doWithWebDescriptor = { xml ->
         def conf = ConfigurationHolder.config.plugins.cometd
@@ -104,11 +106,19 @@ CometD and the Bayeux protocol.
         }
     }
 
-    def doWithDynamicMethods = { context ->
-		def processor = new ServiceCometdProcessor()
-		
+    def processor = new ServiceCometdProcessor()
+
+    def doWithDynamicMethods = { context ->     
         application.serviceClasses?.each { service ->
-            processor.process(service, context.bayeux)
+            processor.process(service.referenceInstance, context.bayeux)
+        }
+    }
+
+    def onChange = { event ->
+        if (application.isServiceClass(event.source)) {
+            def artefact = application.addArtefact(ServiceArtefactHandler.TYPE, event.source)
+            
+            processor.process(artefact.referenceInstance, event.ctx.bayeux)
         }
     }
 }
