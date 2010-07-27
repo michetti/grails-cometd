@@ -26,7 +26,12 @@ import grails.plugin.cometd.ServiceCometdProcessor
 
 import org.springframework.web.context.support.ServletContextAttributeExporter
 
+import org.apache.commons.logging.LogFactory
+
 class CometdGrailsPlugin {
+
+    static LOG = LogFactory.getLog('grails.plugin.cometd.CometdGrailsPlugin')
+
     def version = "0.2.1"
     def grailsVersion = "1.3.1 > *"
     def pluginExcludes = [
@@ -50,6 +55,8 @@ CometD and the Bayeux protocol.
 
     def doWithWebDescriptor = { xml ->
         def conf = ConfigurationHolder.config.plugins.cometd
+        
+        LOG.debug("Initializing with continutationFilter: ${!conf.continuationFilter.disable}")
         if (!conf.continuationFilter.disable) {
             def filters = xml.'filter'
             filters[filters.size() - 1] + {
@@ -76,6 +83,7 @@ CometD and the Bayeux protocol.
 
                 // Add servlet init params from the config file
                 if (conf.init?.params) {
+                    LOG.debug("Initializing with init-params: ${conf.init.params}")
                     conf.init.params.each { key, value ->
                         'init-param' {
                             'param-name'(key)
@@ -118,7 +126,7 @@ CometD and the Bayeux protocol.
         if (application.isServiceClass(event.source)) {
             def artefact = application.addArtefact(ServiceArtefactHandler.TYPE, event.source)
             
-            processor.process(artefact.referenceInstance, event.ctx.bayeux)
+            processor.process(artefact.referenceInstance, event.ctx)
         }
     }
 }

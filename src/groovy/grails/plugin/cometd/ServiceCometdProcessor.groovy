@@ -12,7 +12,8 @@ class ServiceCometdProcessor {
     final static EXPOSE = "expose"
     final static COMETD = "cometd"
     
-	def _context
+    def _context
+    def _messageListenerRemovers = [:]
     def _configurations = [
         "initializers": [:],
         "messageListeners": [:]
@@ -28,9 +29,9 @@ class ServiceCometdProcessor {
     
     def process(service, context) {
         def clazz = service.class
-		def bayeux = context.bayeux
-
-		_context = context;
+        def bayeux = context.bayeux
+        
+        _context = context;
         
         // If the service has declared itself a cometd service
         if (ServiceCometdProcessor.exposesCometd(clazz)) {
@@ -51,6 +52,9 @@ class ServiceCometdProcessor {
             _configurations.initializers.each { channel, configurations ->
                 configureInitializers(channel, configurations, bayeux)
             }
+
+            // If listeners for this class exist, we need to remove them
+            _messageListenerRemovers.get(clazz.name, []).each({remover -> remover.call()}).clear()
             
             // Initialize all of the messageListeners
             _configurations.messageListeners.each { channel, configurations ->
@@ -80,7 +84,7 @@ class ServiceCometdProcessor {
             }
             
             // Add the method to the list of initializers for the given channel
-            addConfigurationForChannel("initializers", annotation.value(), annotation, service, method)
+            _configurations["initializers"].get(annotation.value(), []) << [annotation: annotation, service: service, method: method]
         }
     }
     
@@ -97,7 +101,7 @@ class ServiceCometdProcessor {
             }
             
             // Add the method to the list of message listeners for the channel
-            addConfigurationForChannel("messageListeners", annotation.value(), annotation, service, method)
+            _configurations["messageListeners"].get(annotation.value(), []) << [annotation: annotation, service: service, method: method]
         }
     }
     
@@ -117,54 +121,50 @@ class ServiceCometdProcessor {
         
         configurations.each { configuration ->
             def method = configuration.method
-            def service = _context[GNU.getPropertyNameRepresentation(configuration.service.class)]
+            def serviceClass = configuration.service.class
+            def service = _context[GNU.getPropertyNameRepresentation(serviceClass)]
             def arguments = configuration.method.parameterTypes
-
-            bayeux.getChannel(channelId).addListener({ session, channel, message ->
-                    try {
-                        if (service.seeOwnPublishes || session != service.serverSession) {
-                            def data = Message.class.isAssignableFrom(arguments[1]) ? message : message.data
-                            def reply
-                    
-                            switch (arguments.length) {
-                                case 2:
-                                    reply = method.invoke(service, session, data)
-                                    break;
-                                case 3:
-                                    reply = method.invoke(service, session, data, message.id)
-                                    break;
-                                case 4:
-                                    reply = method.invoke(service, session, message.channel, data, message.id)
-                            }
-
-                            if (reply instanceof Boolean && !reply){
-                                return false
-                            } else {
-                                session.deliver(service.serverSession, message.channel, reply, message.id);
-                            }
+            def channel = bayeux.getChannel(channelId)
+            
+            def listener = { session, listenerChannel, message ->
+                try {
+                    if (service.seeOwnPublishes || session != service.serverSession) {
+                        def data = Message.class.isAssignableFrom(arguments[1]) ? message : message.data
+                        def reply
+                
+                        switch (arguments.length) {
+                            case 2:
+                                reply = method.invoke(service, session, data)
+                                break;
+                            case 3:
+                                reply = method.invoke(service, session, data, message.id)
+                                break;
+                            case 4:
+                                reply = method.invoke(service, session, message.channel, data, message.id)
                         }
-                    } catch (e) {
-                        e.printStackTrace();
+
+                        if (reply instanceof Boolean && !reply){
+                            return false
+                        } else {
+                            session.deliver(service.serverSession, message.channel, reply, message.id);
+                        }
                     }
+                } catch (e) {
+                    e.printStackTrace();
+                }
                 
                 return true
-            } as ServerChannel.MessageListener)
+            } as ServerChannel.MessageListener
+
+            // Add a remover closure, so that we can easily detatch the listener and ditch the configuration
+            _messageListenerRemovers.get(serviceClass.name, []) << {
+                channel.removeListener(listener)
+                configurations.remove(configuration)
+            }
+
+            channel.addListener(listener)
         }
             
-    }
-    
-    /**
-     * Helper method to add a configuration object to the configuration container for a given channel
-     */
-    private addConfigurationForChannel(type, channel, annotation, service, method, ext) {
-        def channelConfigurations = _configurations[type][channel] ?: []
-        def configuration = [annotation: annotation, service: service, method: method] << ext
-        
-        _configurations[type][channel] = channelConfigurations << configuration
-    }
-    
-    private addConfigurationForChannel(type, channel, annotation, service, method) {
-        addConfigurationForChannel(type, channel, annotation, service, method, [:])
     }
     
     private getParameterMessage(annotation, service, method, requirement) {

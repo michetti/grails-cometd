@@ -8,7 +8,7 @@ import org.cometd.server.BayeuxServerImpl
 class ServiceCometdProcessorSpec extends UnitSpec {
     def bayeux = new BayeuxServerImpl()
     def processor = new ServiceCometdProcessor()
-	def context = [bayeux: bayeux]
+    def context = [bayeux: bayeux]
     
     def "can identify services that expose cometd functionality"() {
         given: "a cometd service"
@@ -54,25 +54,25 @@ class ServiceCometdProcessorSpec extends UnitSpec {
         when: "the service is processed"
         processor.process(service, context)
         
-        then:
+        then: "the channel should be initialized"
         bayeux.getChannel("/foo/bar").persistent == true
         
-        where:
+        where: "there are two services"
         service << [new MethodInitializerService(), new MethodInitializerService()]
     }
     
     def "can find message listener method and initialize it so that it is listening to channel publish events"() {
         given: "a cometed service which has a @MessageListener annotated method"
         def service = new MessageListenerService()
-		context["messageListenerService"] = service
+        context["messageListenerService"] = service
         def local = bayeux.newLocalSession("local")
         local.handshake()
         
-        when: "the service is processed"
+        when: "the service is processed and the channel is published to"
         processor.process(service, context)
         bayeux.getChannel("/foo/bar").publish(local.serverSession, [body: "hola"], null)
         
-        then:
+        then: "the method listener should be registered and called"
         bayeux.getChannel("/foo/bar") != null
         service.body == "hola"
     }
@@ -80,7 +80,7 @@ class ServiceCometdProcessorSpec extends UnitSpec {
     def "can correctly initialize message listeners with different signatures"() {
         given: "a cometed service which has @MessageListener annotated methods all with different method signatures"
         def service = new MessageListenerSignaturesService()
-		context["messageListenerSignaturesService"] = service
+        context["messageListenerSignaturesService"] = service
         def local = bayeux.newLocalSession("local")
         local.handshake()
         
@@ -88,8 +88,23 @@ class ServiceCometdProcessorSpec extends UnitSpec {
         processor.process(service, context)
         bayeux.getChannel("/foo/bar").publish(local.serverSession, [body: "hola"], "17")
         
-        then:
+        then: "all listeners should be initialized and called"
         service.called.sort() == ["two", "twoTyped", "three", "four"].sort()
+    }
+
+    def "can reload message listeners gracefully"() {
+        given: "a cometed service with @MessageListeners"
+        def service = new MessageListenerService()
+        context["messageListenerService"] = service
+        def local = bayeux.newLocalSession("local")
+        local.handshake()
+        
+        when: "the service is processed and then reprocessed"
+        processor.process(service, context)
+        processor.process(service, context)
+        
+        then: "the channel should have the correct listeners attached"
+        bayeux.getChannel("/foo/bar").listeners.size() == 1
     }
 }
 
