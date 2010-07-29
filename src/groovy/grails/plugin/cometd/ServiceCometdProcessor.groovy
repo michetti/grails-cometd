@@ -101,7 +101,7 @@ class ServiceCometdProcessor {
             }
             
             // Add the method to the list of message listeners for the channel
-            _configurations["messageListeners"].get(annotation.value(), []) << [annotation: annotation, service: service, method: method]
+            _configurations["messageListeners"].get(annotation.value() ?: annotation.channel(), []) << [annotation: annotation, service: service, method: method]
         }
     }
     
@@ -142,10 +142,8 @@ class ServiceCometdProcessor {
                             case 4:
                                 reply = method.invoke(service, session, message.channel, data, message.id)
                         }
-
-                        if (reply instanceof Boolean && !reply){
-                            return false
-                        } else {
+						
+                        if (reply){
                             session.deliver(service.serverSession, message.channel, reply, message.id);
                         }
                     }
@@ -153,7 +151,7 @@ class ServiceCometdProcessor {
                     e.printStackTrace();
                 }
                 
-                return true
+                return configuration.annotation.broadcast()
             } as ServerChannel.MessageListener
 
             // Add a remover closure, so that we can easily detatch the listener and ditch the configuration

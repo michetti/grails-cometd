@@ -136,7 +136,7 @@ class MessageListenerService {
     static exposes = ["cometd"]
     def body
     
-    @MessageListener("/foo/bar")
+    @MessageListener(channel = "/foo/bar", broadcast = false)
     def receive(session, message) {
         body = message.body
     }
