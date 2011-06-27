@@ -29,7 +29,7 @@ import org.springframework.web.context.support.ServletContextAttributeExporter
 import org.apache.commons.logging.LogFactory
 
 class CometdGrailsPlugin {
-    def version = "0.2.4"
+    def version = "0.2.5"
     def grailsVersion = "1.2.1 > *"
     def dependsOn = [:]
     def pluginExcludes = [
