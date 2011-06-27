@@ -17,12 +17,16 @@
 import grails.util.Environment
 
 import org.codehaus.groovy.grails.commons.ConfigurationHolder
+import org.codehaus.groovy.grails.commons.ServiceArtefactHandler
 
 import org.cometd.server.BayeuxServerImpl
 import org.cometd.server.CometdServlet
 import org.cometd.bayeux.server.BayeuxServer
+import grails.plugin.cometd.ServiceCometdProcessor
 
 import org.springframework.web.context.support.ServletContextAttributeExporter
+
+import org.apache.commons.logging.LogFactory
 
 class CometdGrailsPlugin {
     def version = "0.2.4"
@@ -44,9 +48,13 @@ This plugin allows your Grails application to send asynchronous notifications to
 CometD and the Bayeux protocol.
     '''
     def documentation = "http://www.grails.org/plugin/cometd"
+    def loadAfter = ['services', 'controllers']
+    def observe = ['services', 'controllers']
 
     def doWithWebDescriptor = { xml ->
         def conf = ConfigurationHolder.config.plugins.cometd
+        
+        LOG.debug("Initializing with continutationFilter: ${!conf.continuationFilter.disable}")
         if (!conf.continuationFilter.disable) {
             def filters = xml.'filter'
             filters[filters.size() - 1] + {
@@ -70,6 +78,17 @@ CometD and the Bayeux protocol.
             servlet {
                 'servlet-name'('cometd')
                 'servlet-class'(CometdServlet.class.name)
+
+                // Add servlet init params from the config file
+                if (conf.init?.params) {
+                    LOG.debug("Initializing with init-params: ${conf.init.params}")
+                    conf.init.params.each { key, value ->
+                        'init-param' {
+                            'param-name'(key)
+                            'param-value'(value)
+                        }
+                    }
+                }
             }
         }
 
@@ -90,6 +109,22 @@ CometD and the Bayeux protocol.
         // the CometdServlet will pick up the Bayeux object from the servlet context
         bayeuxAttributeExporter(ServletContextAttributeExporter) {
             attributes = [(BayeuxServer.ATTRIBUTE): ref('bayeux')]
+        }
+    }
+
+    def processor = new ServiceCometdProcessor()
+
+    def doWithDynamicMethods = { context ->     
+        application.serviceClasses?.each { service ->
+            processor.process(service.referenceInstance, context)
+        }
+    }
+
+    def onChange = { event ->
+        if (application.isServiceClass(event.source)) {
+            def artefact = application.addArtefact(ServiceArtefactHandler.TYPE, event.source)
+            
+            processor.process(artefact.referenceInstance, event.ctx)
         }
     }
 }
