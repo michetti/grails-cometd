@@ -102,7 +102,7 @@ CometD and the Bayeux protocol.
     }
 
     def doWithSpring = {
-        bayeux(BayeuxServerImpl, true) { bean ->
+        bayeux(BayeuxServerImpl) { bean ->
             bean.destroyMethod = 'stop'
         }
 
