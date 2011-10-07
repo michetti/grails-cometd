@@ -35,8 +35,7 @@ class CometdGrailsPlugin {
     def pluginExcludes = [
         'grails-app/services/**/test/',
         'grails-app/views/error.gsp',
-        'scripts',
-        'web-app/'
+        'scripts'
     ]
 
     def author = 'Marcus Better'
