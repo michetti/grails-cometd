@@ -77,6 +77,12 @@ CometD and the Bayeux protocol.
             servlet {
                 'servlet-name'('cometd')
                 'servlet-class'(CometdServlet.class.name)
+                
+                // Add Servlet 3.0 Async Support, based on config file
+                if(conf.asyncSupport.enable){
+                    LOG.debug("Enabling Servlet 3.0 Async Support")
+                    'async-supported'('true')
+                }
 
                 // Add servlet init params from the config file
                 if (conf.init?.params) {
