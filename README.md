@@ -70,6 +70,7 @@ The actual use of this annotation would look thusly:
 The plugin is configured in Config.groovy, with options prefixed with "plugins.cometd". The following options are defined:
 
 * **plugins.cometd.continuationFilter.disable**: if set, do not install the to [ContinuationFilter](http://download.eclipse.org/jetty/stable-7/apidocs/org/eclipse/jetty/continuation/ContinuationFilter.html)
+* **plugins.cometd.asyncSupport.enable**:  if set, enable asynchronous support for Servlet 3.0 support (http://cometd.org/node/106)
 * **plugins.cometd.init.params**: a map of init-name -> init-value pairs for an init-param element to be applied to the cometd servlet definition. Make sure you read the javadoc for org.cometd.bayeux.server.ServerTransport for how the init params are applied. Some useful settings include:
 	* **timeout**: In the default long polling http transport is the period of time the server waits before answering to a long poll
 	* **interval**: In the default long polling http transport is the period of time that the client waits between long polls
