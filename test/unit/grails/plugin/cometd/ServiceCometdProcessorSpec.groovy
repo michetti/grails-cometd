@@ -70,7 +70,7 @@ class ServiceCometdProcessorSpec extends UnitSpec {
         
         when: "the service is processed and the channel is published to"
         processor.process(service, context)
-        bayeux.getChannel("/foo/bar").publish(local.serverSession, [body: "hola"], null)
+        bayeux.getChannel("/foo/bar").publish(local.serverSession(), [body: "hola"], null)
         
         then: "the method listener should be registered and called"
         bayeux.getChannel("/foo/bar") != null
@@ -86,7 +86,7 @@ class ServiceCometdProcessorSpec extends UnitSpec {
         
         when: "the service is processed and a message is published on the channel"
         processor.process(service, context)
-        bayeux.getChannel("/foo/bar").publish(local.serverSession, [body: "hola"], "17")
+        bayeux.getChannel("/foo/bar").publish(local.serverSession(), [body: "hola"], "17")
         
         then: "all listeners should be initialized and called"
         service.called.sort() == ["two", "twoTyped", "three", "four"].sort()

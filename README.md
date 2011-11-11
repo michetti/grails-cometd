@@ -7,7 +7,7 @@ NOTE: Because of a bug this won't work in grails 1.3.2 (fixed in 1.3.3):
 
 	grails install-plugin cometd
 	
-You can always download the [source](http://github.com/marcusb/grails-cometd) and then from the plugin directory:
+You can always download the [source](https://github.com/michetti/grails-cometd) and then from the plugin directory:
 
 	grails package-plugin
 	
@@ -64,6 +64,20 @@ The actual use of this annotation would look thusly:
 		[message: "thanks for the info mr. client"]
 	}
 
+
+## Client Resources
+***
+To add the basic jquery cometd plugin resources to your views:
+
+#### TagLib
+
+	<cometd:resources />
+	
+#### Resources Plugin
+
+	<r:required module="cometd" />
+
+
 ### Configuration
 ***
 
@@ -79,9 +93,25 @@ The plugin is configured in Config.groovy, with options prefixed with "plugins.c
 ## Contributing
 Contributions are welcome, preferably by pull request on GitHub
 	
+	git clone git@github.com:michetti/grails-cometd.git
+
+	
+This plugin is a fork from
+
 	git clone git://github.com/marcusb/grails-cometd.git
 
 ## History
+
+
+### Version 0.2.6.1
+***
+* Add support for resources plugin to import cometd js dependencies
+* Fix an issue with getting serverSession
+
+### Version 0.2.6
+***
+* Bump cometd dependecies to 2.3.1
+* Taglib to import cometd js dependecies
 
 ### Version 0.2.1
 ***

@@ -38,10 +38,24 @@ class ServiceCometdProcessor {
             // Setup a localsession for the service
             def localSession = bayeux.newLocalSession(clazz.simpleName)
             localSession.handshake();
-            
+
             clazz.metaClass.seeOwnPublishes = false
             clazz.metaClass.localSession = localSession
-            clazz.metaClass.serverSession = localSession.serverSession
+            clazz.metaClass.serverSession = {
+				if (localSession.isHandshook()) {
+					return localSession.serverSession
+					
+				} else {
+					localSession.handshake();
+					
+					if (localSession.isHandshook()) {
+						return localSession.serverSession
+					} else {
+						return null
+					}	
+				}
+				
+            }
             
             // Process each method looking for cometd annotations
             clazz.methods?.each { method ->
@@ -128,7 +142,7 @@ class ServiceCometdProcessor {
             
             def listener = { session, listenerChannel, message ->
                 try {
-                    if (service.seeOwnPublishes || session != service.serverSession) {
+                    if (service.seeOwnPublishes || session != service.serverSession()) {
                         def data = Message.class.isAssignableFrom(arguments[1]) ? message : message.data
                         def reply
                 
@@ -144,7 +158,7 @@ class ServiceCometdProcessor {
                         }
 						
                         if (reply){
-                            session.deliver(service.serverSession, message.channel, reply, message.id);
+                            session.deliver(service.serverSession(), message.channel, reply, message.id);
                         }
                     }
                 } catch (e) {
